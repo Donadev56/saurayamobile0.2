@@ -5,7 +5,7 @@ import { MessageInterface } from "./types/interface";
 import { MessageContainer } from "@/components/chat/messageContainer";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useEffect, useState } from "react";
-
+ 
 export default function Index() {
   const [text, setText] = useState("");
   const [isInputFocus , setIsInputFocus] = useState(false)
@@ -70,7 +70,7 @@ export default function Index() {
     },
     {
       role: 'user',
-      content: 'What are some examples of cryptocurrencies?',
+      content: 'What are some examples of cryptocurrencies? ',
       images: undefined,
     },
     {
