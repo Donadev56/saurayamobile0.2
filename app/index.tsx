@@ -5,13 +5,15 @@ import { MessageInterface, OllamaChatRequest, PartialResponse } from "./types/in
 import { MessageContainer } from "@/components/chat/messageContainer";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useEffect, useRef, useState } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import { LayoutAnimation, UIManager } from 'react-native';
+import {  UIManager } from 'react-native';
 import { ChatStyle } from "./chatStyle";
 import { io, Socket } from "socket.io-client";
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Enums } from "./enums";
 
 
 const ChatSpace = ()=>  {
@@ -19,10 +21,9 @@ const ChatSpace = ()=>  {
   const [isInputFocus , setIsInputFocus] = useState(false)
   const [messages , setMessages] = useState<MessageInterface[]  >([])
   const socket = useRef<Socket | null>(null);
+  const [isGeneratingText , setIsGeneratingText] = useState(false)
   const flatListRef = useRef< FlatList| null>(null);
 
-  useEffect(()=> {
-  },[])
   useEffect(()=> {
     socket.current = io("http://185.97.144.209:7000");
     const sk = socket.current
@@ -38,6 +39,10 @@ const ChatSpace = ()=>  {
 
     sk?.on('PartialResponse', (response : PartialResponse)=> {
       const responseMessage = response.response.message
+      scollToBottom()
+      if (response.response.done) {
+        setIsGeneratingText(false)
+      }
 
       if (response.isFirst) {
         const newMessage : MessageInterface = {
@@ -45,7 +50,6 @@ const ChatSpace = ()=>  {
           role : responseMessage.role as 'assistant'
         }
         setMessages((lastMessages)=>  { return [...lastMessages , newMessage]})
-        scollToBottom()
 
         return
       }
@@ -53,7 +57,7 @@ const ChatSpace = ()=>  {
         const lastIndex = lastMessages.length - 1
         const lastMessage = lastMessages[lastIndex]
         const newMessage = lastMessage.content + response.response.message.content
-
+   
         lastMessages[lastIndex].content = newMessage
         return [...lastMessages]
 
@@ -68,7 +72,7 @@ const ChatSpace = ()=>  {
 
   useEffect(() => {
     if (Platform.OS === 'android') {
-      UIManager.setLayoutAnimationEnabledExperimental &&
+        UIManager.setLayoutAnimationEnabledExperimental &&
         UIManager.setLayoutAnimationEnabledExperimental(true);
     }
   }, []);
@@ -92,6 +96,8 @@ const ChatSpace = ()=>  {
 
 const sendMessage = async () => {
   try {
+    setIsGeneratingText(true)
+    Keyboard.dismiss()
     const newMessage: MessageInterface = {
       role: 'user',
       content: text,
@@ -104,9 +110,8 @@ const sendMessage = async () => {
       model : 'llama3.2:1b'
     }
 
-    socket?.current?.emit('Chat', request)
+    socket?.current?.emit(Enums.chat, request)
     console.log("Message sent")
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setMessages((lastMessages) => [...lastMessages, newMessage]);
     setText('');
   } catch (error) {
@@ -117,16 +122,40 @@ const sendMessage = async () => {
 const handleOptionsClick = (opt : string)=> {
   if (opt === 'code') {
     setText("Generate Python code to show me your programming skills, choose the type of code.")
+  } else if (opt ==='summary') {
+    setText('Make a summary of')
   }
 
 }
 
 const scollToBottom = ()=> {
-      ( flatListRef ).current?.scrollToEnd({ animated: true });
+  try {
+    
+    flatListRef.current?.scrollToEnd({ animated: true });
+      } catch (e) {
+        console.error(e)
+
+  }
+
+}
+const stopGenerating =  async()=> {
+  try {
+    if (socket.current) {
+      socket.current.emit(Enums.stopGeneration)
+      console.log("Generation stoped.")
+      setIsGeneratingText(false)
+    }
+    
+  } catch (error) {
+    console.error(error)
+    
+  }
 
 }
 
   return (
+    <SafeAreaProvider>
+
     <SafeAreaView >
     <StatusBar backgroundColor="#0d0d0d" barStyle="light-content" />
 
@@ -153,8 +182,8 @@ const scollToBottom = ()=> {
        }
        data={messages}
         keyExtractor={(_ , index)=> index.toString()} 
-       renderItem={({ item }) => (
-      <MessageContainer  msg={item} />
+       renderItem={({ item , index }) => (
+      <MessageContainer index={index} msgSize={messages.length} isInputFocus={isInputFocus}  msg={item} />
   )}
 /> : <View style={ChatStyle.options}>
       <View style={ChatStyle.topOptions}>
@@ -166,7 +195,9 @@ const scollToBottom = ()=> {
       <Text style={ChatStyle.optionsText} > Code</Text>
      </View>  
      </TouchableOpacity>
-     <TouchableOpacity >
+     <TouchableOpacity onPress={()=> {
+          handleOptionsClick('summary')
+        }} >
 
       <View style={ChatStyle.optionsElement }>
       <Feather name="edit-2" size={24} color="yellow" />
@@ -204,9 +235,9 @@ const scollToBottom = ()=> {
     <View style={ChatStyle.topInput} >
 
     <TextInput
- multiline={true} 
- textAlignVertical="top" 
- scrollEnabled={true} 
+  multiline={true} 
+  textAlignVertical="top" 
+  scrollEnabled={true} 
   placeholderTextColor={"grey"}
   cursorColor={"grey"}
   placeholder="Message Sauraya"
@@ -215,7 +246,20 @@ const scollToBottom = ()=> {
   onChangeText={setText}
 />
 
-  <TouchableOpacity  onPress={()=> {
+{ isGeneratingText ? <TouchableOpacity>
+  <MaterialCommunityIcons  style={{
+      fontSize: 20,
+      padding: 10,
+      backgroundColor: 'white',
+      width: 40,
+      height: 40,
+      borderRadius: 50,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+    }} onPress={()=> stopGenerating()} name="square-rounded" size={24} color="#212121" />
+
+</TouchableOpacity> : <TouchableOpacity  onPress={()=> {
    if (text.length === 0) {return}
    sendMessage()
   }}>
@@ -236,7 +280,7 @@ const scollToBottom = ()=> {
     size={24}
     color="black"
   />
-</TouchableOpacity>
+</TouchableOpacity>}
 
     </View>
 
@@ -246,6 +290,8 @@ const scollToBottom = ()=> {
     </View>
     </KeyboardAvoidingView>
     </SafeAreaView>
+    </SafeAreaProvider>
+
   );
 }
 

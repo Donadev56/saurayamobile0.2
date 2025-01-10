@@ -117,7 +117,8 @@ export const markdownStyles = {
     /** Code inline `texte` */
     code_inline: {
       backgroundColor: '#222222',
-  
+      flexWrap: 'wrap', // Assure le retour à la ligne
+
       color: '#ababab',
       fontWeight: 'bold' ,
       borderRaduis : 10 , 
@@ -127,9 +128,13 @@ export const markdownStyles = {
   
     /** Bloc de code (non "fence") */
     code_block: {
+      wordBreak: 'break-word', // Casse les mots longs
+      whiteSpace: 'normal',    // Retourne automatiquement à la ligne
       backgroundColor: '#1e1e1e',
       borderRadius: 6,
       color: '#ce9178',
+      flexWrap: 'wrap', // Assure le retour à la ligne
+
       fontFamily: "Consolas, 'Courier New', monospace",
       marginVertical: 8,
       padding: 8,
@@ -143,6 +148,9 @@ export const markdownStyles = {
       fontFamily: "Consolas, 'Courier New', monospace",
       marginVertical: 8,
       padding: 8,
+
+      flexWrap: 'wrap', // Assure le retour à la ligne
+
     },
   
     /** Tables */
@@ -230,5 +238,7 @@ export const markdownStyles = {
     /** Span */
     span: {
       color: '#d4d4d4',
-    }
+    },
+   
+
   }
