@@ -1,15 +1,78 @@
-import {   FlatList, KeyboardAvoidingView, Keyboard ,Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableHighlight, TouchableOpacity, View } from "react-native";
+import {   FlatList, KeyboardAvoidingView, Keyboard ,Pressable, ScrollView, StatusBar, Text, TextInput, TouchableHighlight, TouchableOpacity, View, TouchableWithoutFeedback } from "react-native";
 import { Platform } from "react-native";
 import TopBarDashboard from "@/components/chat/topBar";
-import { MessageInterface } from "./types/interface";
+import { MessageInterface, OllamaChatRequest, PartialResponse } from "./types/interface";
 import { MessageContainer } from "@/components/chat/messageContainer";
 import AntDesign from '@expo/vector-icons/AntDesign';
-import { useEffect, useState } from "react";
- 
-export default function Index() {
+import { useEffect, useRef, useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Entypo from '@expo/vector-icons/Entypo';
+import Feather from '@expo/vector-icons/Feather';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import { LayoutAnimation, UIManager } from 'react-native';
+import { ChatStyle } from "./chatStyle";
+import { io, Socket } from "socket.io-client";
+
+
+const ChatSpace = ()=>  {
   const [text, setText] = useState("");
   const [isInputFocus , setIsInputFocus] = useState(false)
+  const [messages , setMessages] = useState<MessageInterface[]  >([])
+  const socket = useRef<Socket | null>(null);
+  const flatListRef = useRef< FlatList| null>(null);
 
+  useEffect(()=> {
+  },[])
+  useEffect(()=> {
+    socket.current = io("http://185.97.144.209:7000");
+    const sk = socket.current
+    if (sk) { 
+
+    sk?.on('connect', ()=> {
+      console.log('connected ')
+    })
+    sk?.on('error', (error)=> {
+      console.log('An error occured', error)
+      alert(error)
+    })
+
+    sk?.on('PartialResponse', (response : PartialResponse)=> {
+      const responseMessage = response.response.message
+
+      if (response.isFirst) {
+        const newMessage : MessageInterface = {
+          content : responseMessage.content,
+          role : responseMessage.role as 'assistant'
+        }
+        setMessages((lastMessages)=>  { return [...lastMessages , newMessage]})
+        scollToBottom()
+
+        return
+      }
+      setMessages((lastMessages)=> {
+        const lastIndex = lastMessages.length - 1
+        const lastMessage = lastMessages[lastIndex]
+        const newMessage = lastMessage.content + response.response.message.content
+
+        lastMessages[lastIndex].content = newMessage
+        return [...lastMessages]
+
+      })
+    })
+    sk?.on('Error', (error : any)=> {
+      console.log("An error occured :", error)
+    })
+
+  }
+  }, [])
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      UIManager.setLayoutAnimationEnabledExperimental &&
+        UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+  }, []);
+  
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
@@ -27,138 +90,118 @@ export default function Index() {
     };
   }, []);
 
-  const messages: MessageInterface[] = [
-    {
+const sendMessage = async () => {
+  try {
+    const newMessage: MessageInterface = {
       role: 'user',
-      content: 'Hello, I want to know what is crypto.',
-      images: undefined,
-    },
-    {
-      role: 'assistant',
-      content: 'Hello, cryptocurrency is a digital currency that uses blockchain technology.',
-      images: undefined,
-    },
-    {
-      role: 'user',
-      content: 'Can you tell me more about how blockchain works?',
-      images: undefined,
-    },
-    {
-      role: 'assistant',
-      content: 'Sure! Blockchain is a distributed ledger that records transactions across many computers.',
-      images: undefined,
-    },
-    {
-      role: 'user',
-      content: 'Is cryptocurrency secure?',
-      images: undefined,
-    },
-    {
-      role: 'assistant',
-      content: 'Cryptocurrency uses cryptography to secure transactions, making it highly secure if properly managed.',
-      images: undefined,
-    },
-    {
-      role: 'user',
-      content: 'Can I use cryptocurrency for online purchases?',
-      images: undefined,
-    },
-    {
-      role: 'assistant',
-      content: 'Yes, many platforms accept cryptocurrency as a payment method.',
-      images: undefined,
-    },
-    {
-      role: 'user',
-      content: 'What are some examples of cryptocurrencies? ',
-      images: undefined,
-    },
-    {
-      role: 'assistant',
-      content: 'Some examples include Bitcoin, Ethereum, and Litecoin.',
-      images: undefined,
-    },   {
-      role: 'user',
-      content: 'Hello, I want to know what is crypto.',
-      images: undefined,
-    },
-    {
-      role: 'assistant',
-      content: 'Hello, cryptocurrency is a digital currency that uses blockchain technology.',
-      images: undefined,
-    },
-    {
-      role: 'user',
-      content: 'Can you tell me more about how blockchain works?',
-      images: undefined,
-    },
-    {
-      role: 'assistant',
-      content: 'Sure! Blockchain is a distributed ledger that records transactions across many computers.',
-      images: undefined,
-    },
-    {
-      role: 'user',
-      content: 'Is cryptocurrency secure?',
-      images: undefined,
-    },
-    {
-      role: 'assistant',
-      content: 'Cryptocurrency uses cryptography to secure transactions, making it highly secure if properly managed.',
-      images: undefined,
-    },
-    {
-      role: 'user',
-      content: 'Can I use cryptocurrency for online purchases?',
-      images: undefined,
-    },
-    {
-      role: 'assistant',
-      content: 'Yes, many platforms accept cryptocurrency as a payment method.',
-      images: undefined,
-    },
-    {
-      role: 'user',
-      content: 'What are some examples of cryptocurrencies?',
-      images: undefined,
-    },
-    {
-      role: 'assistant',
-      content: 'Some examples include Bitcoin, Ethereum, and Litecoin.',
-      images: undefined,
-    },
-  ];
-  
+      content: text,
+    };
+   
+    const newMessages = [...messages , newMessage]
+    const request : OllamaChatRequest =  {
+      messages : newMessages,
+      stream : true , 
+      model : 'llama3.2:1b'
+    }
+
+    socket?.current?.emit('Chat', request)
+    console.log("Message sent")
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setMessages((lastMessages) => [...lastMessages, newMessage]);
+    setText('');
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const handleOptionsClick = (opt : string)=> {
+  if (opt === 'code') {
+    setText("Generate Python code to show me your programming skills, choose the type of code.")
+  }
+
+}
+
+const scollToBottom = ()=> {
+      ( flatListRef ).current?.scrollToEnd({ animated: true });
+
+}
 
   return (
+    <SafeAreaView >
+    <StatusBar backgroundColor="#0d0d0d" barStyle="light-content" />
+
     <KeyboardAvoidingView
-    style={style.chatScreen}
+    style={ChatStyle.chatScreen}
     behavior={Platform.OS === "ios" ? "padding" : undefined}
     keyboardVerticalOffset={0}
   >
-    <View style={style.chatScreen} >
-    <StatusBar backgroundColor="#0d0d0d" barStyle="light-content" />
+    <View style={ChatStyle.chatScreen} >
 
        <TopBarDashboard />
-       <View style={style.chatSpace} >
-       <FlatList
+       <View style={ChatStyle.chatSpace} >
+    {messages.length > 0 ? 
+    
+    <FlatList
+      ref={flatListRef}
        showsVerticalScrollIndicator={false}
        style ={
         {
+          minHeight : "83%" ,
           width : '90%',
-          maxHeight :isInputFocus ? '70%' : '82%'
+          maxHeight :isInputFocus ? '80%' : '83%'
         }
        }
        data={messages}
         keyExtractor={(_ , index)=> index.toString()} 
        renderItem={({ item }) => (
-      <TouchableOpacity >
       <MessageContainer  msg={item} />
-    </TouchableOpacity>
   )}
-/>
-  <View style={style.inputContainer}>
-    <View style={style.topInput} >
+/> : <View style={ChatStyle.options}>
+      <View style={ChatStyle.topOptions}>
+        <TouchableOpacity onPress={()=> {
+          handleOptionsClick('code')
+        }} >
+      <View  style={ChatStyle.optionsElement }>
+      <Entypo name="code" size={24} color="#00ec7a" />
+      <Text style={ChatStyle.optionsText} > Code</Text>
+     </View>  
+     </TouchableOpacity>
+     <TouchableOpacity >
+
+      <View style={ChatStyle.optionsElement }>
+      <Feather name="edit-2" size={24} color="yellow" />
+      <Text style={ChatStyle.optionsText} >  Summarize a text</Text>
+
+     
+     </View>
+     </TouchableOpacity>
+
+       </View>
+       <View style={ChatStyle.bottomOptions}>
+       <TouchableOpacity >
+
+      <View style={ChatStyle.optionsElement }>
+      <AntDesign name="user" size={24} color="orange" />
+      <Text style={ChatStyle.optionsText} > Get advice </Text>
+
+     </View>  
+     </TouchableOpacity>
+     <TouchableOpacity >
+
+      <View style={ChatStyle.optionsElement}>
+      <FontAwesome5 name="hands-helping" size={24} color="#8b00ff" />
+      <Text style={ChatStyle.optionsText} > Help me write </Text>
+
+     
+     </View>
+     </TouchableOpacity>
+
+       </View>
+    
+ 
+    </View>   }
+  <View style={ChatStyle.inputContainer}>
+    <View style={ChatStyle.topInput} >
 
     <TextInput
  multiline={true} 
@@ -167,14 +210,18 @@ export default function Index() {
   placeholderTextColor={"grey"}
   cursorColor={"grey"}
   placeholder="Message Sauraya"
-  style={style.input}
+  style={ChatStyle.input}
   value={text}
   onChangeText={setText}
 />
 
-  <TouchableOpacity>
+  <TouchableOpacity  onPress={()=> {
+   if (text.length === 0) {return}
+   sendMessage()
+  }}>
   <AntDesign 
     style={{
+      opacity : text.length > 0? 1  :0.5 ,
       fontSize: 20,
       padding: 10,
       backgroundColor: 'white',
@@ -198,68 +245,13 @@ export default function Index() {
        </View>
     </View>
     </KeyboardAvoidingView>
-
+    </SafeAreaView>
   );
 }
 
 
-
-
-const style = StyleSheet.create ({
-
-  chatScreen : {
-    backgroundColor: "#0d0d0d" ,
-    height: "100%" ,
-    display : 'flex',
-    width : "100%",
-    flexDirection : "column",
-    alignItems : "center",
-
-  }  ,
-  chatSpace  : {
-    maxWidth : 1000,
-
-    marginTop : Platform.OS === "web" ? 50 : 20 ,
-    display : "flex",
-    width: "100%",
-    flexDirection : "column",
-    alignItems : "center",
-    justifyContent : 'center'
-    
-
-  },
-  inputContainer : {
-    position : "fixed",
-    bottom :"5%",
-    borderRadius : 20,
-    display : "flex",
-    alignItems : "center",
-    width: "91%",
-    padding: 10,
-    height : 110,
-    backgroundColor : "#191919" ,
-    maxWidth : 1000,
-
-    zIndex : 1000
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: 'transparent',
-    borderRadius: 5,
-    padding: 5,
-    width : "90%" ,
-    maxWidth : "95%" ,
-    backgroundColor : "#191919" ,
-    color: "white"
-  
-
-   
-  },
-  topInput : {
-    display : 'flex',
-    width : '100%',
-    flexDirection : 'row',
-    paddingInline : 8,
-    maxWidth : "100%",
-  }
-})  
+export default function Index () {
+  return (
+      <ChatSpace />
+  )
+}
