@@ -1,6 +1,4 @@
 export const Enums = {
-    stopGeneration : "STOPGENERATION",
-    chat : "Chat",
- 
- 
- }
+  stopGeneration: 'STOPGENERATION',
+  chat: 'Chat',
+};

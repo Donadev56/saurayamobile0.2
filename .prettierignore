@@ -1,0 +1,7 @@
+# Ignorer les fichiers et dossiers suivants
+node_modules/
+build/
+dist/
+*.min.js
+.expo
+.env
