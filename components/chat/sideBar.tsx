@@ -19,7 +19,7 @@ type ConversationsProps = {
   deleteConversation: (id: string, day: string) => void;
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  reinitConversations :()=> void
+  reinitConversations: () => void;
 };
 
 export const SideBar: React.FC<ConversationsProps> = ({
@@ -31,11 +31,11 @@ export const SideBar: React.FC<ConversationsProps> = ({
   reinitConversations,
   deleteConversation,
 }) => {
-  const translateX = React.useRef(new Animated.Value(-350)).current; 
+  const translateX = React.useRef(new Animated.Value(-350)).current;
 
   useEffect(() => {
     Animated.timing(translateX, {
-      toValue: isOpen ? 0 : -350, 
+      toValue: isOpen ? 0 : -350,
       duration: 300,
       useNativeDriver: true,
     }).start();
@@ -73,7 +73,10 @@ export const SideBar: React.FC<ConversationsProps> = ({
               placeholderTextColor="grey"
               cursorColor={'grey'}
             />
-            <TouchableOpacity onPress={reinitConversations} style={styles.iconButton}>
+            <TouchableOpacity
+              onPress={reinitConversations}
+              style={styles.iconButton}
+            >
               <Feather name="edit" size={24} color="white" />
             </TouchableOpacity>
           </View>
@@ -81,7 +84,7 @@ export const SideBar: React.FC<ConversationsProps> = ({
         <View style={styles.middle}>
           {conversations && (
             <FlatList
-             showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
               data={Object.entries(conversations).reverse()}
               keyExtractor={([day]) => day}
               renderItem={({ item: [day, chats] }) => (
@@ -92,34 +95,46 @@ export const SideBar: React.FC<ConversationsProps> = ({
                     keyExtractor={([id]) => id}
                     renderItem={({ item: [id, data] }) => (
                       <Pressable
-                      android_ripple={{ color: 'rgba(255,255,255,0.3)' }}
-
+                        android_ripple={{ color: 'rgba(255,255,255,0.3)' }}
                         onPress={() => getConversationByIDAndDate(id, day)}
-                        
                       >
-                        <View style={{
-    maxWidth : '100%',
-    overflowX : 'scroll',
-    backgroundColor: id === conversationId ? 'white'  : '',
+                        <View
+                          style={{
+                            maxWidth: '100%',
+                            overflowX: 'scroll',
+                            backgroundColor:
+                              id === conversationId ? 'white' : '',
 
-    marginBottom: 10,
-    padding: 17,
-  }}>
+                            marginBottom: 10,
+                            padding: 17,
+                          }}
+                        >
                           <View style={styles.lastConv}>
-                            <Text style={ {
-    maxWidth : '90%',
-    overflow : 'hidden',
-    textOverflow: 'ellipsis', 
-    color: id === conversationId ? 'black' : '#cfcfcf',
-    fontWeight : 'bold',
-    fontSize: 14,
-  }}>{data.title.slice(0, 19)} {data.title.length > 19 && '...'}</Text>
+                            <Text
+                              style={{
+                                maxWidth: '90%',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                color:
+                                  id === conversationId ? 'black' : '#cfcfcf',
+                                fontWeight: 'bold',
+                                fontSize: 14,
+                              }}
+                            >
+                              {data.title.slice(0, 19)}{' '}
+                              {data.title.length > 19 && '...'}
+                            </Text>
                             <TouchableOpacity
                               onPress={() => deleteConversation(id, day)}
                             >
-                              <Feather style={{
-                                opacity : 0.4
-                              }} name="trash" size={19} color="white" />
+                              <Feather
+                                style={{
+                                  opacity: 0.4,
+                                }}
+                                name="trash"
+                                size={19}
+                                color="white"
+                              />
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -152,15 +167,14 @@ const styles = StyleSheet.create({
   sideBarContainer: {
     flex: 1,
     justifyContent: 'space-between',
-    alignItems :'center'
+    alignItems: 'center',
   },
   sideBarTop: {
-    padding : 17,
+    padding: 17,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomColor: '#212121',
-   
   },
   inputContainer: {
     flexDirection: 'row',
@@ -170,7 +184,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     gap: 10,
-    width : '100%'
+    width: '100%',
   },
   textInput: {
     color: 'white',
@@ -186,19 +200,19 @@ const styles = StyleSheet.create({
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection : 'column',
-    minHeight : '90%',
-    maxHeight : '90%'
+    flexDirection: 'column',
+    minHeight: '90%',
+    maxHeight: '90%',
   },
   lastConversationList: {
     width: '100%',
-    justifyContent :'center',
-    flexDirection : 'column',
-    display : 'flex'
+    justifyContent: 'center',
+    flexDirection: 'column',
+    display: 'flex',
   },
   lastConDate: {
-    padding : 17,
-    fontWeight : 'bold',
+    padding: 17,
+    fontWeight: 'bold',
 
     color: 'white',
     fontSize: 21,
@@ -217,9 +231,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   conName: {
-    maxWidth : '90%',
-    overflow : 'hidden',
-    textOverflow: 'ellipsis', 
+    maxWidth: '90%',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
     color: 'white',
     fontSize: 14,
   },

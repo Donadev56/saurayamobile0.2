@@ -9,7 +9,7 @@ import {
   View,
   Pressable,
 } from 'react-native';
-import { Platform , Animated } from 'react-native';
+import { Platform, Animated } from 'react-native';
 import TopBarDashboard from '@/components/chat/topBar';
 import {
   MessageInterface,
@@ -34,7 +34,10 @@ import { Audio } from 'expo-av';
 import { RemoveMarkdown } from './utils/scripts';
 import { SideBar } from '@/components/chat/sideBar';
 import { ConversationsInterface } from './types/interface';
-import { GetDataFromLocalStorage, SaveDataToLocalStorage } from './utils/dataSaver';
+import {
+  GetDataFromLocalStorage,
+  SaveDataToLocalStorage,
+} from './utils/dataSaver';
 import { GetDate } from './utils/date';
 import { getUniqueID } from 'react-native-markdown-display';
 import { systemMessage } from './utils/system';
@@ -49,39 +52,37 @@ const ChatSpace = () => {
   const [soundInstance, setSoundInstance] = useState<Audio.Sound | null>();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationId, setConversationId] = useState("")
+  const [conversationId, setConversationId] = useState('');
   const [conversations, setConversations] = useState<ConversationsInterface>(
     {}
   );
-  const [userId , setUserId ] = useState('')
+  const [userId, setUserId] = useState('');
 
-  const [isDone , setIsDone] = useState(true)
-  const [isOpen , setIsOpen] = useState(false)
+  const [isDone, setIsDone] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
-  const conversationName = `conversations/${userId}`
+  const conversationName = `conversations/${userId}`;
 
- 
   const reinitConversations = () => {
     setMessages([]);
-    setConversationId("");
-    setText("");
-    setIsDone(false)
-    setIsOpen(false)
-    setIsLoading(false)
-    setIsPlaying(false)
-    soundInstance?.stopAsync()
-    setSoundInstance(null)
-    setIsGeneratingText(false)
-    socket.current?.emit(Enums.stopGeneration)
+    setConversationId('');
+    setText('');
+    setIsDone(false);
+    setIsOpen(false);
+    setIsLoading(false);
+    setIsPlaying(false);
+    soundInstance?.stopAsync();
+    setSoundInstance(null);
+    setIsGeneratingText(false);
+    socket.current?.emit(Enums.stopGeneration);
 
     getConversationAll();
-    console.log("Conversations reinitialized successfully");
+    console.log('Conversations reinitialized successfully');
   };
-
 
   const getConversationByIDAndDate = async (
     conversationId: string,
-    date: string,
+    date: string
   ) => {
     try {
       const conversation = await GetDataFromLocalStorage(conversationName);
@@ -96,18 +97,19 @@ const ChatSpace = () => {
           getConversationAll();
         }
       } else {
-        console.log("No conversation found");
+        console.log('No conversation found');
       }
     } catch (error) {
-      console.error("An error occurred:", error);
+      console.error('An error occurred:', error);
     }
   };
   const deleteConversation = (conId: string, day: string) => {
-    setConversations( (prevConversations) => {
+    setConversations((prevConversations) => {
       const updatedConversations = { ...prevConversations };
-     
+
       if (updatedConversations[day] && updatedConversations[day][conId]) {
-        const { [conId]: _, ...remainingConversations } = updatedConversations[day];
+        const { [conId]: _, ...remainingConversations } =
+          updatedConversations[day];
 
         if (Object.keys(remainingConversations).length === 0) {
           delete updatedConversations[day];
@@ -115,10 +117,10 @@ const ChatSpace = () => {
           updatedConversations[day] = remainingConversations;
         }
       } else {
-        console.error("The conversation does not exist", "error")
+        console.error('The conversation does not exist', 'error');
       }
 
-       SaveDataToLocalStorage(
+      SaveDataToLocalStorage(
         JSON.stringify(updatedConversations),
         conversationName
       );
@@ -130,9 +132,8 @@ const ChatSpace = () => {
     setIsLoading(true);
 
     try {
-     
-        soundInstance?.stopAsync();
-     
+      soundInstance?.stopAsync();
+
       const result = await fetch('https://converter.sauraya.com/convert/', {
         method: 'POST',
         body: JSON.stringify({ text: text }),
@@ -172,17 +173,17 @@ const ChatSpace = () => {
       }
     } catch (error) {
       console.error('Error :', error);
-      setIsLoading(false)
-      setIsPlaying(false)
+      setIsLoading(false);
+      setIsPlaying(false);
     }
   };
 
-  useEffect(()=> {
-    getConversationAll()
-  }, [])
+  useEffect(() => {
+    getConversationAll();
+  }, []);
 
   const getConversationAll = async () => {
-   /* if (!userId) {
+    /* if (!userId) {
       console.warn("User ID not found");
       return;
     }*/
@@ -191,61 +192,57 @@ const ChatSpace = () => {
     if (lastConversation) {
       setConversations(JSON.parse(lastConversation));
     } else {
-      console.warn("No conversation found in local storage");
+      console.warn('No conversation found in local storage');
     }
     try {
     } catch (error) {
-      console.error("An error occurred:", error);
+      console.error('An error occurred:', error);
     }
   };
 
-  const SaveConversations =  async( newMessages : MessageInterface[] )=> {
-    try { 
-        const title = newMessages[0]?.content;
-        const currentDate = GetDate();
-        const newID = getUniqueID();
-        let id: string = "";
-        const conversations = await GetDataFromLocalStorage(conversationName);
-        const conversationsList = conversations ? JSON.parse(conversations) : {};
-        if (!conversationsList[currentDate]) {
-            conversationsList[currentDate] = {};
-          }
-    
-
-          if (!conversationsList[currentDate][conversationId]) {
-            conversationsList[currentDate][newID] = { title: title, messages: [] };
-            id = newID;
-            console.log("New conversation ID : ", newID);
-            setConversationId(newID);
-          } else {
-            console.log("Existing conversation ID : ", conversationId);
-            id = conversationId;
-          }
-          if (newMessages.length === 0) {
-            console.error("No new messages to update");
-            return;
-          }
-          conversationsList[currentDate][id].messages = newMessages;
-        const response =  await SaveDataToLocalStorage(
-            JSON.stringify(conversationsList),
-            conversationName,
-          );
-          setConversations(conversationsList);
-      if (!response) {
-        console.error("Conversations was not saved.")
-        return
+  const SaveConversations = async (newMessages: MessageInterface[]) => {
+    try {
+      const title = newMessages[0]?.content;
+      const currentDate = GetDate();
+      const newID = getUniqueID();
+      let id: string = '';
+      const conversations = await GetDataFromLocalStorage(conversationName);
+      const conversationsList = conversations ? JSON.parse(conversations) : {};
+      if (!conversationsList[currentDate]) {
+        conversationsList[currentDate] = {};
       }
-              setConversations(conversationsList)
 
-          console.log("Conversations updated successfully");
+      if (!conversationsList[currentDate][conversationId]) {
+        conversationsList[currentDate][newID] = { title: title, messages: [] };
+        id = newID;
+        console.log('New conversation ID : ', newID);
+        setConversationId(newID);
+      } else {
+        console.log('Existing conversation ID : ', conversationId);
+        id = conversationId;
+      }
+      if (newMessages.length === 0) {
+        console.error('No new messages to update');
+        return;
+      }
+      conversationsList[currentDate][id].messages = newMessages;
+      const response = await SaveDataToLocalStorage(
+        JSON.stringify(conversationsList),
+        conversationName
+      );
+      setConversations(conversationsList);
+      if (!response) {
+        console.error('Conversations was not saved.');
+        return;
+      }
+      setConversations(conversationsList);
 
+      console.log('Conversations updated successfully');
     } catch (error) {
-        console.error(error)
-        return false
-        
+      console.error(error);
+      return false;
     }
-
-}
+  };
   useEffect(() => {
     socket.current = io('http://185.97.144.209:7000');
     const sk = socket.current;
@@ -263,7 +260,7 @@ const ChatSpace = () => {
         scollToBottom();
 
         if (response.isFirst) {
-          setIsDone(false)
+          setIsDone(false);
           const newMessage: MessageInterface = {
             content: responseMessage.content,
             role: responseMessage.role as 'assistant',
@@ -285,12 +282,11 @@ const ChatSpace = () => {
             setIsGeneratingText(false);
             const textWithEmojies = RemoveMarkdown(newMessage);
             const emojiRegex =
-            /(?:\p{Emoji}(?:\p{Emoji_Modifier}|\uFE0F)?(?:\u200D\p{Emoji})*)/gu;
-            const text = textWithEmojies?.replace(emojiRegex, "");
-
+              /(?:\p{Emoji}(?:\p{Emoji_Modifier}|\uFE0F)?(?:\u200D\p{Emoji})*)/gu;
+            const text = textWithEmojies?.replace(emojiRegex, '');
 
             speak(text);
-            setIsDone(true)
+            setIsDone(true);
           }
           return [...lastMessages];
         });
@@ -335,16 +331,13 @@ const ChatSpace = () => {
       Keyboard.dismiss();
       const newMessage: MessageInterface = {
         role: 'user',
-        content: text,      
-
+        content: text,
       };
-      let newMessages : MessageInterface [] = []
+      let newMessages: MessageInterface[] = [];
       if (messages.length === 0) {
-        newMessages = [systemMessage , newMessage]
-
+        newMessages = [systemMessage, newMessage];
       } else {
         newMessages = [...messages, newMessage];
-
       }
       const request: OllamaChatRequest = {
         messages: newMessages,
@@ -389,11 +382,11 @@ const ChatSpace = () => {
       console.error(error);
     }
   };
- useEffect(()=> {
+  useEffect(() => {
     if (isDone) {
-      SaveConversations([...messages])
+      SaveConversations([...messages]);
     }
- }, [isDone])
+  }, [isDone]);
   return (
     <SafeAreaProvider>
       <SafeAreaView>
@@ -403,35 +396,42 @@ const ChatSpace = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={0}
         >
-          <SideBar reinitConversations={reinitConversations} isOpen={isOpen} setIsOpen={setIsOpen} conversationId={conversationId} conversations={conversations} deleteConversation={deleteConversation} getConversationByIDAndDate={getConversationByIDAndDate} />
-      { isOpen && (
-          <Pressable
-          android_ripple={{ color: 'rgba(255,255,255,0.3)' }}
-
-          style={[
-            {
-              position: 'absolute',
-              top: 0,
-              bottom: 0,
-              left: 0,
-              right: 0,
-              backgroundColor: '#0d0d0d99', // Un fond sombre et transparent
-              zIndex: 9999,
-              justifyContent: 'center',
-              alignItems: 'center',
-            },
-          
-          ]}
-          onPress={() => setIsOpen(false)}
-        >
-    
-      
-          <View />
-      </Pressable>
-
-    ) }
+          <SideBar
+            reinitConversations={reinitConversations}
+            isOpen={isOpen}
+            setIsOpen={setIsOpen}
+            conversationId={conversationId}
+            conversations={conversations}
+            deleteConversation={deleteConversation}
+            getConversationByIDAndDate={getConversationByIDAndDate}
+          />
+          {isOpen && (
+            <Pressable
+              android_ripple={{ color: 'rgba(255,255,255,0.3)' }}
+              style={[
+                {
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: '#0d0d0d99', // Un fond sombre et transparent
+                  zIndex: 9999,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                },
+              ]}
+              onPress={() => setIsOpen(false)}
+            >
+              <View />
+            </Pressable>
+          )}
           <View style={ChatStyle.chatScreen}>
-            <TopBarDashboard reinitConversations={reinitConversations} isOpen={isOpen} setIsOpen={setIsOpen} />
+            <TopBarDashboard
+              reinitConversations={reinitConversations}
+              isOpen={isOpen}
+              setIsOpen={setIsOpen}
+            />
             <View style={ChatStyle.chatSpace}>
               {messages.length > 0 ? (
                 <FlatList

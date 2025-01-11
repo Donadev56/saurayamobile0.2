@@ -31,7 +31,9 @@ type MessageProps = {
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   soundInstance: Audio.Sound;
-  setSoundInstance: React.Dispatch<React.SetStateAction<Audio.Sound | null | undefined>>;
+  setSoundInstance: React.Dispatch<
+    React.SetStateAction<Audio.Sound | null | undefined>
+  >;
   speak: (text: string) => Promise<void>;
 };
 
@@ -68,8 +70,6 @@ export const MessageContainer = ({
     soundInstance?.stopAsync();
     setIsPlaying(false);
   };
-
- 
 
   const animatedStyle = {
     opacity: fadeAnim,
@@ -204,7 +204,6 @@ const MarkdownContent = ({ content }: { content: string }) => {
       }}
     >
       {content}
-
     </Markdown>
   );
 };

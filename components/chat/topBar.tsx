@@ -4,19 +4,24 @@ import Feather from '@expo/vector-icons/Feather';
 import Entypo from '@expo/vector-icons/Entypo';
 
 type topBarProps = {
-  isOpen : boolean
-  setIsOpen :  React.Dispatch<React.SetStateAction<boolean>>
-  reinitConversations :()=> void
-
-}
-export default function TopBarDashboard({ reinitConversations,isOpen , setIsOpen}: topBarProps) {
+  isOpen: boolean;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  reinitConversations: () => void;
+};
+export default function TopBarDashboard({
+  reinitConversations,
+  isOpen,
+  setIsOpen,
+}: topBarProps) {
   return (
     <View style={style.topBar}>
       <View style={style.topBarContainer}>
         <View style={style.left}>
-          <TouchableOpacity onPress={()=> {
-            setIsOpen(!isOpen)
-          }} >
+          <TouchableOpacity
+            onPress={() => {
+              setIsOpen(!isOpen);
+            }}
+          >
             <FontAwesome6
               style={style.iconColor}
               name="bars-staggered"
@@ -37,15 +42,8 @@ export default function TopBarDashboard({ reinitConversations,isOpen , setIsOpen
           </TouchableOpacity>
         </View>
         <View style={style.right}>
-          <TouchableOpacity
-          onPress={reinitConversations}
-          >
-            <Feather
-            
-              style={style.iconColor}
-              name="edit"
-              size={24}
-            />
+          <TouchableOpacity onPress={reinitConversations}>
+            <Feather style={style.iconColor} name="edit" size={24} />
           </TouchableOpacity>
           <TouchableOpacity>
             <Entypo
