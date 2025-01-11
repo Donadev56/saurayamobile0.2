@@ -106,8 +106,7 @@ export const MessageContainer = ({
               ) : (
                 <TouchableOpacity
                   onPress={async () => {
-                    const text = RemoveMarkdown(msg.content);
-                    speak(text);
+                    speak(msg.content);
                   }}
                 >
                   <Feather name="volume-2" size={24} color="#cbcbcb" />

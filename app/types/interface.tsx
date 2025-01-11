@@ -27,3 +27,8 @@ export type ConversationsInterface = {
     [conversationId: string]: Conversation;
   };
 };
+
+
+export interface RequestData {
+  title : string,
+}

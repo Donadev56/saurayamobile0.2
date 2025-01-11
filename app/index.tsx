@@ -15,6 +15,7 @@ import {
   MessageInterface,
   OllamaChatRequest,
   PartialResponse,
+  RequestData,
 } from './types/interface';
 import { MessageContainer } from '@/components/chat/messageContainer';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -41,6 +42,7 @@ import {
 import { GetDate } from './utils/date';
 import { getUniqueID } from 'react-native-markdown-display';
 import { systemMessage } from './utils/system';
+import {GenerateResponse} from 'ollama' ;
 
 const ChatSpace = () => {
   const [text, setText] = useState('');
@@ -53,6 +55,7 @@ const ChatSpace = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState('');
+  const [Title , setTitle] = useState('')
   const [conversations, setConversations] = useState<ConversationsInterface>(
     {}
   );
@@ -97,7 +100,7 @@ const ChatSpace = () => {
           getConversationAll();
         }
       } else {
-        console.log('No conversation found');
+        console.error('No conversation found');
       }
     } catch (error) {
       console.error('An error occurred:', error);
@@ -128,8 +131,14 @@ const ChatSpace = () => {
       return updatedConversations;
     });
   };
-  const speak = async (text: string) => {
+  const speak = async (newMessage: string) => {
     setIsLoading(true);
+    setIsGeneratingText(false);
+    const textWithEmojies = RemoveMarkdown(newMessage);
+    const emojiRegex =
+      /(?:\p{Emoji}(?:\p{Emoji_Modifier}|\uFE0F)?(?:\u200D\p{Emoji})*)/gu;
+    const text = textWithEmojies?.replace(emojiRegex, '');
+
 
     try {
       soundInstance?.stopAsync();
@@ -202,7 +211,7 @@ const ChatSpace = () => {
 
   const SaveConversations = async (newMessages: MessageInterface[]) => {
     try {
-      const title = newMessages[0]?.content;
+      const title = Title.length > 0 ? Title : newMessages[0]?.content;
       const currentDate = GetDate();
       const newID = getUniqueID();
       let id: string = '';
@@ -215,10 +224,8 @@ const ChatSpace = () => {
       if (!conversationsList[currentDate][conversationId]) {
         conversationsList[currentDate][newID] = { title: title, messages: [] };
         id = newID;
-        console.log('New conversation ID : ', newID);
         setConversationId(newID);
       } else {
-        console.log('Existing conversation ID : ', conversationId);
         id = conversationId;
       }
       if (newMessages.length === 0) {
@@ -254,7 +261,16 @@ const ChatSpace = () => {
         console.log('An error occured', error);
         alert(error);
       });
-
+      sk.on(Enums.titleFound, (data : RequestData )=> {
+         try {
+         if (data) {
+          setTitle(data.title)
+        }
+      } catch (error) {
+        console.error(error)
+          
+      }
+      })
       sk?.on('PartialResponse', (response: PartialResponse) => {
         const responseMessage = response.response.message;
         scollToBottom();
@@ -279,13 +295,8 @@ const ChatSpace = () => {
 
           lastMessages[lastIndex].content = newMessage;
           if (response.response.done) {
-            setIsGeneratingText(false);
-            const textWithEmojies = RemoveMarkdown(newMessage);
-            const emojiRegex =
-              /(?:\p{Emoji}(?:\p{Emoji_Modifier}|\uFE0F)?(?:\u200D\p{Emoji})*)/gu;
-            const text = textWithEmojies?.replace(emojiRegex, '');
-
-            speak(text);
+          
+            speak(newMessage);
             setIsDone(true);
           }
           return [...lastMessages];
